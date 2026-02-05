@@ -47,6 +47,7 @@
         
         html {
             height: 100%;
+            overflow: hidden; /* Предотвращаем скролл всей страницы */
         }
         
         body {
@@ -58,7 +59,7 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            background-attachment: fixed;
+            background-attachment: fixed; /* Фиксируем фон */
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             padding: 
@@ -69,8 +70,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            touch-action: manipulation;
-            position: relative;
+            touch-action: pan-y; /* Разрешаем только вертикальный свайп */
+            position: fixed; /* Фиксируем body чтобы предотвратить дергание */
+            width: 100%;
+            height: 100%;
+            overflow-y: auto; /* Разрешаем скролл только контейнера */
+            -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
         }
         
         body::before {
@@ -87,8 +92,13 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            background-attachment: fixed; /* Фиксируем и здесь */
             z-index: -1;
             padding-bottom: env(safe-area-inset-bottom, 0px);
+            /* Предотвращаем движение фона при свайпе */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
         
         .container {
@@ -103,6 +113,9 @@
             max-width: 500px;
             margin: 0 auto;
             margin-bottom: env(safe-area-inset-bottom, 0px);
+            /* Предотвращаем движение контейнера */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
         }
         
         .header {
@@ -701,10 +714,10 @@
     <!-- Скрытый аудио элемент для звуковых уведомлений -->
     <div class="audio-container">
         <audio id="alarmSound" preload="auto">
-            <source src="https://www.soundjay.com/misc_c2026/sounds/wind-chime-1.mp3" type="audio/mpeg">
+            <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3" type="audio/mpeg">
         </audio>
         <audio id="notificationSound" preload="auto">
-            <source src="https://www.soundjay.com/misc_c2026/sounds/pill-bottle-1.mp3" type="audio/mpeg">
+            <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
         </audio>
     </div>
     
@@ -754,6 +767,8 @@
         let timers = [];
         let alarmCheckInterval = null;
         let isPlayingAlarm = false;
+        let timerSoundInterval = null;
+        let notificationPermission = false;
 
         // Класс будильника
         class Alarm {
@@ -1002,7 +1017,7 @@
                 
                 if (remaining <= 0) {
                     // Таймер завершен
-                    playAlarm();
+                    playRepeatingAlarm();
                     showNotification(`Таймер завершен!`, 'alarm');
                     timer.enabled = false;
                     hasChanges = true;
@@ -1040,6 +1055,59 @@
         }
 
         // ========== ЗВУК И ВИБРАЦИЯ ==========
+
+        // Воспроизведение повторяющегося звука таймера
+        function playRepeatingAlarm() {
+            if (isPlayingAlarm) return;
+            
+            isPlayingAlarm = true;
+            
+            try {
+                // Функция для воспроизведения одного цикла звука
+                const playSoundCycle = () => {
+                    alarmSound.currentTime = 0;
+                    alarmSound.play().catch(e => console.log('Ошибка воспроизведения звука:', e));
+                    
+                    // Вибрация для каждого цикла
+                    if (navigator.vibrate) {
+                        navigator.vibrate([800, 300, 800]);
+                    }
+                };
+                
+                // Воспроизвести первый раз
+                playSoundCycle();
+                
+                // Установить интервал повторения (каждые 5 секунд)
+                timerSoundInterval = setInterval(playSoundCycle, 5000);
+                
+                // Остановить повторение через 60 секунд (12 циклов)
+                setTimeout(stopRepeatingAlarm, 60000);
+                
+            } catch (error) {
+                console.error('Ошибка при воспроизведении будильника:', error);
+                stopRepeatingAlarm();
+            }
+        }
+
+        // Остановить повторяющийся звук
+        function stopRepeatingAlarm() {
+            isPlayingAlarm = false;
+            if (timerSoundInterval) {
+                clearInterval(timerSoundInterval);
+                timerSoundInterval = null;
+            }
+            
+            // Остановить вибрацию
+            if (navigator.vibrate) {
+                navigator.vibrate(0);
+            }
+            
+            // Остановить звук
+            if (alarmSound) {
+                alarmSound.pause();
+                alarmSound.currentTime = 0;
+            }
+        }
 
         // Воспроизвести звук будильника
         function playAlarm() {
@@ -1091,13 +1159,17 @@
 
         // Показать уведомление
         function showNotification(message, type = 'info') {
+            // Показываем браузерное уведомление
+            showBrowserNotification(message, type);
+            
+            // Показываем встроенное уведомление
             notificationMessage.textContent = message;
             notification.className = 'notification show';
             
             // Установить цвет в зависимости от типа
             if (type === 'alarm') {
                 notification.style.background = 'linear-gradient(145deg, #ff9800, #f57c00)';
-                // Для будильника звук уже играет в playAlarm()
+                // Для будильника звук уже играет в playAlarm() или playRepeatingAlarm()
             } else if (type === 'error') {
                 notification.style.background = 'linear-gradient(145deg, #f44336, #d32f2f)';
                 playNotificationSound();
@@ -1119,9 +1191,71 @@
             setTimeout(closeNotification, timeout);
         }
 
+        // Показать браузерное уведомление
+        function showBrowserNotification(message, type = 'info') {
+            // Проверяем поддержку браузерных уведомлений
+            if (!('Notification' in window)) {
+                return;
+            }
+            
+            // Если разрешение еще не получено, запрашиваем его
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    notificationPermission = permission === 'granted';
+                    if (notificationPermission) {
+                        createBrowserNotification(message, type);
+                    }
+                });
+            } 
+            // Если уже есть разрешение
+            else if (Notification.permission === 'granted') {
+                createBrowserNotification(message, type);
+            }
+        }
+
+        // Создать браузерное уведомление
+        function createBrowserNotification(message, type) {
+            let icon = '/icon-192.png';
+            let title = 'Часы РР4';
+            
+            if (type === 'alarm') {
+                title = '⏰ Будильник!';
+            } else if (type === 'error') {
+                title = '❌ Ошибка';
+            } else {
+                title = '✅ Уведомление';
+            }
+            
+            const options = {
+                body: message,
+                icon: icon,
+                badge: icon,
+                tag: 'rr4-notification',
+                renotify: true,
+                vibrate: type === 'alarm' ? [200, 100, 200] : [100],
+                requireInteraction: type === 'alarm'
+            };
+            
+            try {
+                const notification = new Notification(title, options);
+                
+                // Обработчик клика по уведомлению
+                notification.onclick = function() {
+                    window.focus();
+                    this.close();
+                };
+                
+                // Автоматически закрыть через 10 секунд
+                setTimeout(() => notification.close(), 10000);
+            } catch (error) {
+                console.log('Ошибка создания уведомления:', error);
+            }
+        }
+
         // Закрыть уведомление
         function closeNotification() {
             notification.classList.remove('show');
+            stopRepeatingAlarm();
             // Остановить вибрацию при закрытии уведомления
             if (navigator.vibrate) {
                 navigator.vibrate(0);
@@ -1197,6 +1331,16 @@
         function init() {
             // Загружаем настройки
             loadFromStorage();
+            
+            // Запрашиваем разрешение на уведомления
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    // Можем показать кнопку для запроса разрешения позже
+                    console.log('Разрешение на уведомления не запрошено');
+                } else if (Notification.permission === 'granted') {
+                    notificationPermission = true;
+                }
+            }
             
             // Обновление реального времени каждую секунду
             setInterval(updateRealTime, 1000);
@@ -1301,11 +1445,26 @@
 
         // Остановить звук при уходе со страницы
         window.addEventListener('beforeunload', () => {
+            stopRepeatingAlarm();
             if (alarmSound) alarmSound.pause();
             if (notificationSound) notificationSound.pause();
             if (navigator.vibrate) navigator.vibrate(0);
         });
+
+        // Предотвращаем скролл фона на iOS
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.classList.contains('alarm-list')) {
+                // Разрешаем скролл только для списка будильников
+                return;
+            }
+            // Для остальных элементов предотвращаем скролл фона
+            e.preventDefault();
+        }, { passive: false });
+
+        // Исправляем проблему с дерганием фона
+        document.addEventListener('touchstart', function(e) {
+            // Ничего не делаем, просто предотвращаем стандартное поведение
+        }, { passive: true });
     </script>
 </body>
-
 </html>
