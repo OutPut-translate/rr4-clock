@@ -6,11 +6,11 @@
     <title>Часы РР4</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- ========== ДОБАВЛЯЕМ ЭТО ========== -->
     <!-- PWA мета-теги -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4fc3f7">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Часы РР4">
     <link rel="apple-touch-icon" href="./icon-192.png">
@@ -22,7 +22,6 @@
 
     <!-- Для обновления приложения -->
     <script src="./register-sw.js" defer></script>
-    <!-- ========== КОНЕЦ ДОБАВЛЕНИЯ ========== -->
     
     <style>
         * {
@@ -36,7 +35,7 @@
         :root {
             --primary-color: #4fc3f7;
             --secondary-color: #ff9800;
-            --bg-dark: rgba(0, 0, 0, 0.6); /* Сделано светлее */
+            --bg-dark: rgba(0, 0, 0, 0.6);
             --bg-light: rgba(255, 255, 255, 0.1);
             --text-color: #fff;
             --border-color: rgba(255, 255, 255, 0.2);
@@ -53,7 +52,6 @@
         body {
             min-height: 100vh;
             min-height: -webkit-fill-available;
-            /* Уменьшена затемняющая заливка */
             background: 
                 linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
                 url(https://avatars.mds.yandex.net/i?id=8ced81f3065c33782f97153f695cce14_l-5234137-images-thumbs&n=13);
@@ -83,7 +81,6 @@
             width: 100vw;
             height: 100vh;
             height: -webkit-fill-available;
-            /* Уменьшена затемняющая заливка */
             background: 
                 linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
                 url(https://avatars.mds.yandex.net/i?id=8ced81f3065c33782f97153f695cce14_l-5234137-images-thumbs&n=13);
@@ -471,16 +468,6 @@
             line-height: 1.4;
         }
         
-        .game-day-info {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 13px;
-            color: #bb86fc;
-            padding: 8px;
-            background: rgba(187, 134, 252, 0.1);
-            border-radius: 8px;
-        }
-        
         .game-time-of-day {
             position: absolute;
             top: 8px;
@@ -682,13 +669,6 @@
             </div>
         </div>
         
-        <div class="game-day-info">
-            <div id="gameDayInfo">Игровой день: 1</div>
-            <button onclick="resetGameDay()" class="day-reset-btn">
-                <i class="fas fa-redo"></i> Сбросить игровой день
-            </button>
-        </div>
-        
         <div class="ratio">
             <span><i class="fas fa-exchange-alt"></i> 1 игр. час = 2.5 реал. мин</span>
             <span><i class="fas fa-calendar-day"></i> 1 игр. день = 60 реал. мин</span>
@@ -749,14 +729,12 @@
         </div>
     </div>
     
-    <!-- ========== ДОБАВЛЯЕМ ЭТО ========== -->
     <!-- Кнопка установки PWA -->
     <div id="installContainer" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
         <button id="installButton" style="background: #4fc3f7; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
             ⬇️ Установить приложение
         </button>
     </div>
-    <!-- ========== КОНЕЦ ДОБАВЛЕНИЯ ========== -->
     
     <div id="notification" class="notification">
         <i class="fas fa-bell"></i>
@@ -769,7 +747,6 @@
         const realClock = document.getElementById('realClock');
         const gameClock = document.getElementById('gameClock');
         const gameTimeOfDay = document.getElementById('gameTimeOfDay');
-        const gameDayInfo = document.getElementById('gameDayInfo');
         const dayProgress = document.getElementById('dayProgress');
         const timezoneSelect = document.getElementById('timezoneSelect');
         
@@ -794,7 +771,6 @@
         let alarms = [];
         let timers = [];
         let alarmCheckInterval = null;
-        let gameDayOffset = 0; // Смещение для сброса дней
 
         // Класс будильника
         class Alarm {
@@ -853,44 +829,11 @@
             // Вычисляем общее количество игровых минут с начала дня
             const totalGameMinutes = totalRealMinutesToday * gameMinutesPerRealMinute;
             
-            // Вычисляем игровой день (каждые 60 реальных минут = 1 игровой день)
-            const gameDay = Math.floor(totalRealMinutesToday / REAL_MINUTES_PER_GAME_DAY) + 1 - gameDayOffset;
-            
-            // Возвращаем объект с временем и днем
+            // Возвращаем объект с временем
             return {
                 totalGameMinutes: totalGameMinutes % GAME_MINUTES_PER_DAY,
-                gameDay: gameDay > 0 ? gameDay : 1,
                 progressPercent: (totalGameMinutes % GAME_MINUTES_PER_DAY) / GAME_MINUTES_PER_DAY * 100
             };
-        }
-
-        // Сброс игрового дня
-        function resetGameDay() {
-            const localTime = getTimeForTimezone(currentTimezone);
-            const realHours = localTime.getHours();
-            const realMinutes = localTime.getMinutes();
-            const realSeconds = localTime.getSeconds();
-            
-            // Вычисляем текущий игровой день
-            const totalRealMinutesToday = realHours * 60 + realMinutes + realSeconds / 60;
-            const currentGameDay = Math.floor(totalRealMinutesToday / REAL_MINUTES_PER_GAME_DAY) + 1;
-            
-            // Устанавливаем смещение так, чтобы день стал 1
-            gameDayOffset = currentGameDay - 1;
-            
-            // Сохраняем смещение в localStorage
-            saveToStorage();
-            
-            // Обновляем отображение
-            updateRealTime();
-            
-            // Показываем уведомление
-            showNotification('Игровой день сброшен на 1', 'success');
-            
-            // Вибрация
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
-            }
         }
 
         // Обновление реального времени
@@ -905,7 +848,7 @@
             updateTimers();
         }
 
-        // Обновление игрового времени
+        // Обновление игрового времени (УПРОЩЕННАЯ ВЕРСИЯ - БЕЗ СЧЕТЧИКА ДНЕЙ)
         function updateGameTime(realHours, realMinutes, realSeconds) {
             // Получаем игровое время
             const gameTime = realTimeToGameTime(realHours, realMinutes, realSeconds);
@@ -921,9 +864,6 @@
             // Время суток
             const timeOfDay = getGameTimeOfDay(gameHours);
             gameTimeOfDay.textContent = timeOfDay;
-            
-            // Игровой день
-            gameDayInfo.querySelector('div').textContent = `Игровой день: ${gameTime.gameDay}`;
             
             // Прогресс дня
             dayProgress.style.width = `${gameTime.progressPercent}%`;
@@ -1148,7 +1088,6 @@
         function saveToStorage() {
             const state = {
                 timezone: currentTimezone,
-                gameDayOffset: gameDayOffset,
                 alarms: alarms.map(alarm => ({
                     id: alarm.id,
                     hours: alarm.hours,
@@ -1178,10 +1117,6 @@
                     if (state.timezone !== undefined) {
                         currentTimezone = parseInt(state.timezone);
                         timezoneSelect.value = currentTimezone;
-                    }
-                    
-                    if (state.gameDayOffset !== undefined) {
-                        gameDayOffset = parseInt(state.gameDayOffset);
                     }
                     
                     if (state.alarms) {
@@ -1274,7 +1209,6 @@
         // Запуск при загрузке страницы
         document.addEventListener('DOMContentLoaded', init);
         
-        <!-- ========== ДОБАВЛЯЕМ ЭТО ========== -->
         // Обработчик установки PWA
         let deferredPrompt;
 
@@ -1309,7 +1243,6 @@
             }
             console.log('🎉 PWA успешно установлено!');
         });
-        <!-- ========== КОНЕЦ ДОБАВЛЕНИЯ ========== -->
     </script>
 </body>
 </html>
