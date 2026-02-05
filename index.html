@@ -366,16 +366,6 @@
             background: linear-gradient(145deg, #d32f2f, #c62828);
         }
         
-        .day-reset-btn {
-            background: linear-gradient(145deg, #9c27b0, #7b1fa2);
-            color: white;
-            margin-top: 10px;
-        }
-        
-        .day-reset-btn:active {
-            background: linear-gradient(145deg, #7b1fa2, #6a1b9a);
-        }
-        
         .status {
             text-align: center;
             margin-top: 15px;
@@ -477,25 +467,6 @@
             padding: 3px 8px;
             border-radius: 10px;
             font-weight: 600;
-        }
-        
-        .day-progress {
-            margin: 15px 0;
-        }
-        
-        .progress-bar {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4fc3f7, #2196f3);
-            border-radius: 3px;
-            transition: width 0.5s ease;
         }
         
         .notification {
@@ -624,6 +595,11 @@
                 padding-bottom: max(15px, env(safe-area-inset-bottom));
             }
         }
+        
+        /* Стиль для аудио элемента (скрытый) */
+        .audio-container {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -660,12 +636,6 @@
                 <div class="clock-label"><i class="fas fa-gamepad"></i> Игровое время</div>
                 <div id="gameClock" class="time-display">--:--</div>
                 <div id="gameTimeOfDay" class="game-time-of-day"></div>
-            </div>
-        </div>
-        
-        <div class="day-progress">
-            <div class="progress-bar">
-                <div class="progress-fill" id="dayProgress"></div>
             </div>
         </div>
         
@@ -724,9 +694,18 @@
             2. Часы автоматически показывают игровое время<br>
             3. Установите будильник на нужное игровое время<br>
             4. Таймеры отсчитывают реальное время<br>
-            5. Быстрые будильники с интервалом 6 часов: 00:00, 06:00, 12:00, 18:00<br>
-            6. Нажмите "Сбросить игровой день" для сброса отсчета дней
+            5. Быстрые будильники с интервалом 6 часов: 00:00, 06:00, 12:00, 18:00
         </div>
+    </div>
+    
+    <!-- Скрытый аудио элемент для звуковых уведомлений -->
+    <div class="audio-container">
+        <audio id="alarmSound" preload="auto">
+            <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="notificationSound" preload="auto">
+            <source src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" type="audio/mpeg">
+        </audio>
     </div>
     
     <!-- Кнопка установки PWA -->
@@ -747,7 +726,6 @@
         const realClock = document.getElementById('realClock');
         const gameClock = document.getElementById('gameClock');
         const gameTimeOfDay = document.getElementById('gameTimeOfDay');
-        const dayProgress = document.getElementById('dayProgress');
         const timezoneSelect = document.getElementById('timezoneSelect');
         
         // Элементы будильника
@@ -760,6 +738,10 @@
         const alarmList = document.getElementById('alarmList');
         const notification = document.getElementById('notification');
         const notificationMessage = document.getElementById('notificationMessage');
+        
+        // Аудио элементы
+        const alarmSound = document.getElementById('alarmSound');
+        const notificationSound = document.getElementById('notificationSound');
 
         // КОНСТАНТЫ ДЛЯ ИГРОВОГО ВРЕМЕНИ
         const REAL_MINUTES_PER_GAME_HOUR = 2.5;
@@ -771,6 +753,7 @@
         let alarms = [];
         let timers = [];
         let alarmCheckInterval = null;
+        let isPlayingAlarm = false;
 
         // Класс будильника
         class Alarm {
@@ -865,9 +848,6 @@
             const timeOfDay = getGameTimeOfDay(gameHours);
             gameTimeOfDay.textContent = timeOfDay;
             
-            // Прогресс дня
-            dayProgress.style.width = `${gameTime.progressPercent}%`;
-            
             // Проверка будильников
             checkAlarms(gameHours, gameMinutes);
         }
@@ -906,8 +886,9 @@
             saveToStorage();
             showNotification(`Будильник установлен на ${formatTime(hours, minutes)}`, 'success');
             
+            // Короткая вибрация
             if (navigator.vibrate) {
-                navigator.vibrate(50);
+                navigator.vibrate([50, 30, 50]);
             }
         }
 
@@ -926,8 +907,9 @@
             saveToStorage();
             showNotification(`Таймер установлен на ${minutes} минут`, 'success');
             
+            // Короткая вибрация
             if (navigator.vibrate) {
-                navigator.vibrate([50, 50, 50]);
+                navigator.vibrate([30, 50, 30]);
             }
         }
 
@@ -938,6 +920,7 @@
             renderAlarms();
             saveToStorage();
             
+            // Вибрация при удалении
             if (navigator.vibrate) {
                 navigator.vibrate(100);
             }
@@ -951,6 +934,7 @@
                 renderAlarms();
                 saveToStorage();
                 
+                // Короткая вибрация
                 if (navigator.vibrate) {
                     navigator.vibrate(30);
                 }
@@ -1017,13 +1001,11 @@
                 const remaining = timer.totalMinutes - elapsedMinutes;
                 
                 if (remaining <= 0) {
+                    // Таймер завершен
+                    playAlarm();
                     showNotification(`Таймер завершен!`, 'alarm');
                     timer.enabled = false;
                     hasChanges = true;
-                    
-                    if (navigator.vibrate) {
-                        navigator.vibrate([200, 100, 200, 100, 200]);
-                    }
                 } else if (Math.ceil(remaining) !== Math.ceil(timer.remainingMinutes)) {
                     timer.remainingMinutes = remaining;
                     hasChanges = true;
@@ -1047,16 +1029,62 @@
                 const timeDiff = Math.abs(currentGameTime - alarmTime);
                 
                 if (timeDiff < 1) {
+                    // Сработал будильник
+                    playAlarm();
                     showNotification(`Будильник! Игровое время: ${formatTime(gameHours, gameMinutes)}`, 'alarm');
                     alarm.enabled = false;
                     renderAlarms();
                     saveToStorage();
-                    
-                    if (navigator.vibrate) {
-                        navigator.vibrate([500, 200, 500, 200, 500]);
-                    }
                 }
             });
+        }
+
+        // ========== ЗВУК И ВИБРАЦИЯ ==========
+
+        // Воспроизвести звук будильника
+        function playAlarm() {
+            if (isPlayingAlarm) return;
+            
+            isPlayingAlarm = true;
+            
+            try {
+                // Сбросить и воспроизвести звук
+                alarmSound.currentTime = 0;
+                alarmSound.play().catch(e => console.log('Ошибка воспроизведения звука:', e));
+                
+                // Продленная вибрация (более длинная и интенсивная)
+                if (navigator.vibrate) {
+                    // Паттерн: длинная вибрация, пауза, повтор
+                    const vibrationPattern = [
+                        800,  // Вибрация 800 мс
+                        300,  // Пауза 300 мс
+                        800,  // Вибрация 800 мс
+                        300,  // Пауза 300 мс
+                        800,  // Вибрация 800 мс
+                        500,  // Пауза 500 мс
+                        1200  // Длинная вибрация 1200 мс
+                    ];
+                    navigator.vibrate(vibrationPattern);
+                }
+                
+                // Сбросить флаг через 10 секунд
+                setTimeout(() => {
+                    isPlayingAlarm = false;
+                }, 10000);
+            } catch (error) {
+                console.error('Ошибка при воспроизведении будильника:', error);
+                isPlayingAlarm = false;
+            }
+        }
+
+        // Воспроизвести звук уведомления
+        function playNotificationSound() {
+            try {
+                notificationSound.currentTime = 0;
+                notificationSound.play().catch(e => console.log('Ошибка воспроизведения звука уведомления:', e));
+            } catch (error) {
+                console.error('Ошибка при воспроизведении звука уведомления:', error);
+            }
         }
 
         // ========== УВЕДОМЛЕНИЯ ==========
@@ -1066,20 +1094,38 @@
             notificationMessage.textContent = message;
             notification.className = 'notification show';
             
+            // Установить цвет в зависимости от типа
             if (type === 'alarm') {
                 notification.style.background = 'linear-gradient(145deg, #ff9800, #f57c00)';
+                // Для будильника звук уже играет в playAlarm()
             } else if (type === 'error') {
                 notification.style.background = 'linear-gradient(145deg, #f44336, #d32f2f)';
+                playNotificationSound();
+                // Короткая вибрация для ошибок
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
             } else {
                 notification.style.background = 'linear-gradient(145deg, #4caf50, #388e3c)';
+                playNotificationSound();
+                // Короткая вибрация для успешных действий
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
             }
             
-            setTimeout(closeNotification, 5000);
+            // Автоматически закрыть через 8 секунд для будильника, 5 для остальных
+            const timeout = type === 'alarm' ? 8000 : 5000;
+            setTimeout(closeNotification, timeout);
         }
 
         // Закрыть уведомление
         function closeNotification() {
             notification.classList.remove('show');
+            // Остановить вибрацию при закрытии уведомления
+            if (navigator.vibrate) {
+                navigator.vibrate(0);
+            }
         }
 
         // ========== ХРАНИЛИЩЕ ==========
@@ -1171,6 +1217,14 @@
             // Первое обновление
             updateRealTime();
             renderAlarms();
+            
+            // Предзагрузка аудио
+            try {
+                alarmSound.load();
+                notificationSound.load();
+            } catch (error) {
+                console.log('Предзагрузка аудио не требуется или не поддерживается');
+            }
         }
 
         // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
@@ -1227,6 +1281,7 @@
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
                         console.log('✅ Пользователь установил приложение');
+                        showNotification('Приложение успешно установлено!', 'success');
                     } else {
                         console.log('❌ Пользователь отказался от установки');
                     }
@@ -1242,6 +1297,13 @@
                 installContainer.style.display = 'none';
             }
             console.log('🎉 PWA успешно установлено!');
+        });
+
+        // Остановить звук при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            if (alarmSound) alarmSound.pause();
+            if (notificationSound) notificationSound.pause();
+            if (navigator.vibrate) navigator.vibrate(0);
         });
     </script>
 </body>
