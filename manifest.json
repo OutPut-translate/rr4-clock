@@ -1,13 +1,11 @@
 {
   "name": "Часы РР4",
   "short_name": "РР4 Часы",
-  "description": "Игровые часы для РР4 с будильниками и таймерами",
+  "description": "Игровые часы для РР4 с будильниками",
   "start_url": "/rr4-clock/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#4fc3f7",
-  "orientation": "portrait",
-  "categories": ["games", "productivity", "utilities"],
   "icons": [
     {
       "src": "icon-192.png",
@@ -18,28 +16,6 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
-    },
-    {
-      "src": "icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Новый будильник",
-      "short_name": "Будильник",
-      "description": "Добавить новый будильник",
-      "url": "/rr4-clock/#addAlarm",
-      "icons": [{ "src": "shortcut-icon.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Быстрый таймер",
-      "short_name": "Таймер",
-      "description": "Установить таймер на 30 мин",
-      "url": "/rr4-clock/#quickTimer",
-      "icons": [{ "src": "timer-icon.png", "sizes": "96x96" }]
     }
   ]
 }
