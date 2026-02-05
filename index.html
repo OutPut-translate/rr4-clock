@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Часы РР4</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- ========== ДОБАВЛЯЕМ ЭТО ========== -->
+    <!-- PWA мета-теги -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#4fc3f7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Часы РР4">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+
+    <!-- Для SEO -->
+    <meta name="description" content="Игровые часы для РР4 с будильниками и таймерами. Преобразование игрового времени, установка будильников, PWA приложение.">
+    <meta name="keywords" content="РР4, игровые часы, будильник, таймер, игровое время, PWA">
+    <meta name="author" content="Ваше имя">
+
+    <!-- Для обновления приложения -->
+    <script src="./register-sw.js" defer></script>
+    <!-- ========== КОНЕЦ ДОБАВЛЕНИЯ ========== -->
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-text-size-adjust: 100%;
+        }
+        
+        :root {
+            --primary-color: #4fc3f7;
+            --secondary-color: #ff9800;
+            --bg-dark: rgba(0, 0, 0, 0.6); /* Сделано светлее */
+            --bg-light: rgba(255, 255, 255, 0.1);
+            --text-color: #fff;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+        }
+        
+        html {
+            height: 100%;
+        }
+        
+        body {
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            /* Уменьшена затемняющая заливка */
+            background: 
+                linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+                url(https://avatars.mds.yandex.net/i?id=8ced81f3065c33782f97153f695cce14_l-5234137-images-thumbs&n=13);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            padding: 
+                calc(15px + var(--safe-area-inset-top)) 
+                calc(15px + var(--safe-area-inset-right)) 
+                calc(15px + var(--safe-area-inset-bottom)) 
+                calc(15px + var(--safe-area-inset-left));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            height: -webkit-fill-available;
+            /* Уменьшена затемняющая заливка */
+            background: 
+                linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+                url(https://avatars.mds.yandex.net/i?id=8ced81f3065c33782f97153f695cce14_l-5234137-images-thumbs&n=13);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -1;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        
+        .container {
+            background: rgb(0 0 0 / 10%);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            margin-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            font-size: clamp(20px, 5vw, 24px);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        
+        .author-note {
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        
+        .author-note i {
+            color: #ff9800;
+            margin-right: 5px;
+        }
+        
+        .clock-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .clock {
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .real-time {
+            background: linear-gradient(145deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.15));
+            border: 2px solid #2196f3;
+        }
+        
+        .game-time {
+            background: linear-gradient(145deg, rgba(255, 193, 7, 0.3), rgba(255, 193, 7, 0.15));
+            border: 2px solid #ffc107;
+        }
+        
+        .clock-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+        
+        .time-display {
+            font-size: clamp(32px, 10vw, 44px);
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+            letter-spacing: 1px;
+            line-height: 1.2;
+        }
+        
+        .real-time .time-display {
+            color: var(--primary-color);
+        }
+        
+        .game-time .time-display {
+            color: #ffcc80;
+        }
+        
+        .timezone-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .timezone-selector select {
+            padding: 10px 12px;
+            border: 1px solid #444;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            font-size: 14px;
+            width: 100%;
+            max-width: 280px;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding-right: 40px;
+        }
+        
+        .timezone-selector select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+        }
+        
+        .alarm-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 18px;
+            margin-top: 20px;
+        }
+        
+        .section-title {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .time-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-light);
+            padding: 10px;
+            border-radius: 10px;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        .time-input {
+            padding: 12px;
+            border: 1px solid #555;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            width: 100%;
+            font-weight: bold;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .time-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+        }
+        
+        .input-label {
+            font-size: 11px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        button:active {
+            transform: translateY(2px);
+            opacity: 0.9;
+        }
+        
+        .alarm-btn {
+            background: linear-gradient(145deg, #ff9800, #f57c00);
+            color: white;
+        }
+        
+        .alarm-btn:active {
+            background: linear-gradient(145deg, #f57c00, #ef6c00);
+        }
+        
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .quick-btn {
+            background: rgba(33, 150, 243, 0.2);
+            color: white;
+            padding: 12px;
+            font-size: 14px;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+        
+        .quick-btn:active {
+            background: rgba(33, 150, 243, 0.3);
+        }
+        
+        .action-btn {
+            background: linear-gradient(145deg, #2196f3, #1976d2);
+            color: white;
+        }
+        
+        .action-btn:active {
+            background: linear-gradient(145deg, #1976d2, #1565c0);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(145deg, #f44336, #d32f2f);
+            color: white;
+        }
+        
+        .reset-btn:active {
+            background: linear-gradient(145deg, #d32f2f, #c62828);
+        }
+        
+        .day-reset-btn {
+            background: linear-gradient(145deg, #9c27b0, #7b1fa2);
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .day-reset-btn:active {
+            background: linear-gradient(145deg, #7b1fa2, #6a1b9a);
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            min-height: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            line-height: 1.4;
+        }
+        
+        .alarm-status {
+            color: var(--secondary-color);
+        }
+        
+        .info {
+            background: rgba(255, 193, 7, 0.15);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 0 10px 10px 0;
+            font-size: 13px;
+            color: #ffcc80;
+            line-height: 1.5;
+        }
+        
+        .alarm-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .alarm-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .alarm-item.active {
+            border-left-color: #4caf50;
+        }
+        
+        .alarm-time {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .alarm-info {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        
+        .alarm-actions {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .alarm-actions button {
+            padding: 8px 12px;
+            font-size: 12px;
+            width: auto;
+            min-width: 40px;
+        }
+        
+        .ratio {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #bbb;
+        }
+        
+        .ratio span {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        
+        .game-day-info {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #bb86fc;
+            padding: 8px;
+            background: rgba(187, 134, 252, 0.1);
+            border-radius: 8px;
+        }
+        
+        .game-time-of-day {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        
+        .day-progress {
+            margin: 15px 0;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #2196f3);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: linear-gradient(145deg, #ff9800, #f57c00);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            width: 90%;
+            max-width: 400px;
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            visibility: hidden;
+            top: calc(20px + var(--safe-area-inset-top));
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+            visibility: visible;
+        }
+        
+        .notification .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        @media (hover: none) and (pointer: coarse) {
+            button:active {
+                transform: scale(0.98);
+            }
+        }
+        
+        input[type="number"] {
+            font-size: 16px !important;
+        }
+        
+        .alarm-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .alarm-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+        
+        .alarm-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+        }
+        
+        @media (max-width: 360px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .clock {
+                padding: 12px;
+            }
+            
+            .time-display {
+                font-size: 28px;
+            }
+            
+            .alarm-section {
+                padding: 15px;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+            
+            .quick-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-dark: rgba(255, 255, 255, 0.15);
+                --bg-light: rgba(0, 0, 0, 0.1);
+                --text-color: #333;
+                --border-color: rgba(0, 0, 0, 0.2);
+            }
+            
+            .timezone-selector select,
+            .time-input {
+                background: rgba(255, 255, 255, 0.9);
+                color: #333;
+                border-color: #ccc;
+            }
+            
+            .alarm-item {
+                background: rgba(0, 0, 0, 0.05);
+            }
+            
+            .info {
+                color: #333;
+            }
+        }
+        
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(15px, env(safe-area-inset-left));
+                padding-right: max(15px, env(safe-area-inset-right));
+                padding-top: max(15px, env(safe-area-inset-top));
+                padding-bottom: max(15px, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-fish"></i> Часы РР4 <i class="fas fa-clock"></i></h1>
+            <div class="author-note">
+                <i class="fas fa-heart"></i> Спасибо в игре <strong>Aleksandr.G</strong> за идею!
+            </div>
+        </div>
+        
+        <div class="clock-container">
+            <div class="clock real-time">
+                <div class="clock-label"><i class="fas fa-globe-europe"></i> Реальное время</div>
+                <div id="realClock" class="time-display">--:--:--</div>
+                <div class="timezone-selector">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <select id="timezoneSelect">
+                        <option value="3">Москва (UTC+3)</option>
+                        <option value="4">Самара (UTC+4)</option>
+                        <option value="5">Екатеринбург (UTC+5)</option>
+                        <option value="6">Омск (UTC+6)</option>
+                        <option value="7">Новосибирск (UTC+7)</option>
+                        <option value="8">Иркутск (UTC+8)</option>
+                        <option value="9">Якутск (UTC+9)</option>
+                        <option value="10">Владивосток (UTC+10)</option>
+                        <option value="0">Лондон (UTC+0)</option>
+                        <option value="2">Киев (UTC+2)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="clock game-time">
+                <div class="clock-label"><i class="fas fa-gamepad"></i> Игровое время</div>
+                <div id="gameClock" class="time-display">--:--</div>
+                <div id="gameTimeOfDay" class="game-time-of-day"></div>
+            </div>
+        </div>
+        
+        <div class="day-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="dayProgress"></div>
+            </div>
+        </div>
+        
+        <div class="game-day-info">
+            <div id="gameDayInfo">Игровой день: 1</div>
+            <button onclick="resetGameDay()" class="day-reset-btn">
+                <i class="fas fa-redo"></i> Сбросить игровой день
+            </button>
+        </div>
+        
+        <div class="ratio">
+            <span><i class="fas fa-exchange-alt"></i> 1 игр. час = 2.5 реал. мин</span>
+            <span><i class="fas fa-calendar-day"></i> 1 игр. день = 60 реал. мин</span>
+        </div>
+        
+        <div class="alarm-section">
+            <div class="section-title"><i class="fas fa-bell"></i> Будильник / Таймер</div>
+            
+            <div class="controls">
+                <div class="input-row">
+                    <div class="time-input-group">
+                        <div class="input-label">Час</div>
+                        <input type="number" id="alarmHours" class="time-input" min="0" max="23" placeholder="00" value="0" inputmode="numeric">
+                    </div>
+                    <div class="time-input-group">
+                        <div class="input-label">Минуты</div>
+                        <input type="number" id="alarmMinutes" class="time-input" min="0" max="59" placeholder="00" value="0" inputmode="numeric">
+                    </div>
+                </div>
+                
+                <button id="addAlarmBtn" class="alarm-btn">
+                    <i class="fas fa-plus-circle"></i> Добавить будильник
+                </button>
+            </div>
+            
+            <div class="quick-buttons">
+                <button class="quick-btn" onclick="setQuickAlarm(0,0)"><i class="fas fa-moon"></i> 00:00</button>
+                <button class="quick-btn" onclick="setQuickAlarm(6,0)"><i class="fas fa-sunrise"></i> 06:00</button>
+                <button class="quick-btn" onclick="setQuickAlarm(12,0)"><i class="fas fa-sun"></i> 12:00</button>
+                <button class="quick-btn" onclick="setQuickAlarm(18,0)"><i class="fas fa-sunset"></i> 18:00</button>
+            </div>
+            
+            <div class="controls">
+                <div class="time-input-group">
+                    <div class="input-label">Таймер (мин)</div>
+                    <input type="number" id="timerMinutes" class="time-input" min="1" max="240" placeholder="30" value="30" inputmode="numeric">
+                </div>
+                <button id="addTimerBtn" class="alarm-btn">
+                    <i class="fas fa-hourglass-start"></i> Установить таймер
+                </button>
+            </div>
+            
+            <div id="alarmStatus" class="status alarm-status">Нет активных будильников</div>
+            
+            <div class="alarm-list" id="alarmList">
+                <!-- Будильники будут добавляться сюда -->
+            </div>
+        </div>
+        
+        <div class="info">
+            <strong><i class="fas fa-info-circle"></i> Как использовать:</strong><br>
+            1. Выберите ваш часовой пояс<br>
+            2. Часы автоматически показывают игровое время<br>
+            3. Установите будильник на нужное игровое время<br>
+            4. Таймеры отсчитывают реальное время<br>
+            5. Быстрые будильники с интервалом 6 часов: 00:00, 06:00, 12:00, 18:00<br>
+            6. Нажмите "Сбросить игровой день" для сброса отсчета дней
+        </div>
+    </div>
+    
+    <!-- ========== ДОБАВЛЯЕМ ЭТО ========== -->
+    <!-- Кнопка установки PWA -->
+    <div id="installContainer" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+        <button id="installButton" style="background: #4fc3f7; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+            ⬇️ Установить приложение
+        </button>
+    </div>
+    <!-- ========== КОНЕЦ ДОБАВЛЕНИЯ ========== -->
+    
+    <div id="notification" class="notification">
+        <i class="fas fa-bell"></i>
+        <span id="notificationMessage">Будильник!</span>
+        <button class="close-btn" onclick="closeNotification()">×</button>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const realClock = document.getElementById('realClock');
+        const gameClock = document.getElementById('gameClock');
+        const gameTimeOfDay = document.getElementById('gameTimeOfDay');
+        const gameDayInfo = document.getElementById('gameDayInfo');
+        const dayProgress = document.getElementById('dayProgress');
+        const timezoneSelect = document.getElementById('timezoneSelect');
+        
+        // Элементы будильника
+        const alarmHoursInput = document.getElementById('alarmHours');
+        const alarmMinutesInput = document.getElementById('alarmMinutes');
+        const addAlarmBtn = document.getElementById('addAlarmBtn');
+        const timerMinutesInput = document.getElementById('timerMinutes');
+        const addTimerBtn = document.getElementById('addTimerBtn');
+        const alarmStatus = document.getElementById('alarmStatus');
+        const alarmList = document.getElementById('alarmList');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+
+        // КОНСТАНТЫ ДЛЯ ИГРОВОГО ВРЕМЕНИ
+        const REAL_MINUTES_PER_GAME_HOUR = 2.5;
+        const GAME_MINUTES_PER_DAY = 24 * 60;
+        const REAL_MINUTES_PER_GAME_DAY = 60;
+        
+        // Переменные состояния
+        let currentTimezone = 3;
+        let alarms = [];
+        let timers = [];
+        let alarmCheckInterval = null;
+        let gameDayOffset = 0; // Смещение для сброса дней
+
+        // Класс будильника
+        class Alarm {
+            constructor(hours, minutes, id = null) {
+                this.id = id || Date.now();
+                this.hours = hours;
+                this.minutes = minutes;
+                this.enabled = true;
+                this.gameTime = hours * 60 + minutes;
+                this.type = 'alarm';
+            }
+        }
+
+        // Класс таймера
+        class Timer {
+            constructor(minutes, id = null) {
+                this.id = id || Date.now();
+                this.totalMinutes = minutes;
+                this.remainingMinutes = minutes;
+                this.startTime = new Date();
+                this.enabled = true;
+                this.type = 'timer';
+            }
+        }
+
+        // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
+
+        // Форматирование времени
+        function formatTime(hours, minutes, seconds = null) {
+            const hh = String(hours).padStart(2, '0');
+            const mm = String(minutes).padStart(2, '0');
+            if (seconds !== null) {
+                const ss = String(seconds).padStart(2, '0');
+                return `${hh}:${mm}:${ss}`;
+            }
+            return `${hh}:${mm}`;
+        }
+
+        // Получение времени для часового пояса
+        function getTimeForTimezone(timezoneOffset) {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            return new Date(utc + (timezoneOffset * 3600000));
+        }
+
+        // ПРЕОБРАЗОВАНИЕ РЕАЛЬНОГО ВРЕМЕНИ В ИГРОВОЕ
+        function realTimeToGameTime(realHours, realMinutes, realSeconds) {
+            // Вычисляем общее количество реальных минут с начала дня
+            const totalRealMinutesToday = realHours * 60 + realMinutes + realSeconds / 60;
+            
+            // Преобразуем реальные минуты в игровые минуты
+            // 2.5 реальных минуты = 1 игровой час = 60 игровых минут
+            // Значит: 1 реальная минута = 60 / 2.5 = 24 игровых минуты
+            const gameMinutesPerRealMinute = 60 / REAL_MINUTES_PER_GAME_HOUR;
+            
+            // Вычисляем общее количество игровых минут с начала дня
+            const totalGameMinutes = totalRealMinutesToday * gameMinutesPerRealMinute;
+            
+            // Вычисляем игровой день (каждые 60 реальных минут = 1 игровой день)
+            const gameDay = Math.floor(totalRealMinutesToday / REAL_MINUTES_PER_GAME_DAY) + 1 - gameDayOffset;
+            
+            // Возвращаем объект с временем и днем
+            return {
+                totalGameMinutes: totalGameMinutes % GAME_MINUTES_PER_DAY,
+                gameDay: gameDay > 0 ? gameDay : 1,
+                progressPercent: (totalGameMinutes % GAME_MINUTES_PER_DAY) / GAME_MINUTES_PER_DAY * 100
+            };
+        }
+
+        // Сброс игрового дня
+        function resetGameDay() {
+            const localTime = getTimeForTimezone(currentTimezone);
+            const realHours = localTime.getHours();
+            const realMinutes = localTime.getMinutes();
+            const realSeconds = localTime.getSeconds();
+            
+            // Вычисляем текущий игровой день
+            const totalRealMinutesToday = realHours * 60 + realMinutes + realSeconds / 60;
+            const currentGameDay = Math.floor(totalRealMinutesToday / REAL_MINUTES_PER_GAME_DAY) + 1;
+            
+            // Устанавливаем смещение так, чтобы день стал 1
+            gameDayOffset = currentGameDay - 1;
+            
+            // Сохраняем смещение в localStorage
+            saveToStorage();
+            
+            // Обновляем отображение
+            updateRealTime();
+            
+            // Показываем уведомление
+            showNotification('Игровой день сброшен на 1', 'success');
+            
+            // Вибрация
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+
+        // Обновление реального времени
+        function updateRealTime() {
+            const localTime = getTimeForTimezone(currentTimezone);
+            const realHours = localTime.getHours();
+            const realMinutes = localTime.getMinutes();
+            const realSeconds = localTime.getSeconds();
+            
+            realClock.textContent = formatTime(realHours, realMinutes, realSeconds);
+            updateGameTime(realHours, realMinutes, realSeconds);
+            updateTimers();
+        }
+
+        // Обновление игрового времени
+        function updateGameTime(realHours, realMinutes, realSeconds) {
+            // Получаем игровое время
+            const gameTime = realTimeToGameTime(realHours, realMinutes, realSeconds);
+            const totalGameMinutes = gameTime.totalGameMinutes;
+            
+            // Вычисляем часы и минуты
+            const gameHours = Math.floor(totalGameMinutes / 60);
+            const gameMinutes = Math.floor(totalGameMinutes % 60);
+            
+            // Обновление времени
+            gameClock.textContent = formatTime(gameHours, gameMinutes);
+            
+            // Время суток
+            const timeOfDay = getGameTimeOfDay(gameHours);
+            gameTimeOfDay.textContent = timeOfDay;
+            
+            // Игровой день
+            gameDayInfo.querySelector('div').textContent = `Игровой день: ${gameTime.gameDay}`;
+            
+            // Прогресс дня
+            dayProgress.style.width = `${gameTime.progressPercent}%`;
+            
+            // Проверка будильников
+            checkAlarms(gameHours, gameMinutes);
+        }
+
+        // Время суток
+        function getGameTimeOfDay(gameHours) {
+            if (gameHours >= 0 && gameHours < 5) return "Ночь";
+            if (gameHours >= 5 && gameHours < 10) return "Утро";
+            if (gameHours >= 10 && gameHours < 17) return "День";
+            if (gameHours >= 17 && gameHours < 21) return "Вечер";
+            return "Ночь";
+        }
+
+        // ========== БУДИЛЬНИКИ ==========
+
+        // Быстрые будильники с интервалом 6 часов
+        function setQuickAlarm(hours, minutes) {
+            alarmHoursInput.value = hours;
+            alarmMinutesInput.value = minutes;
+            addAlarm();
+        }
+
+        // Добавить будильник
+        function addAlarm() {
+            const hours = parseInt(alarmHoursInput.value) || 0;
+            const minutes = parseInt(alarmMinutesInput.value) || 0;
+            
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                showNotification('Неверное время будильника', 'error');
+                return;
+            }
+            
+            const alarm = new Alarm(hours, minutes);
+            alarms.push(alarm);
+            renderAlarms();
+            saveToStorage();
+            showNotification(`Будильник установлен на ${formatTime(hours, minutes)}`, 'success');
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }
+
+        // Добавить таймер
+        function addTimer() {
+            const minutes = parseInt(timerMinutesInput.value) || 30;
+            
+            if (minutes < 1 || minutes > 1440) {
+                showNotification('Таймер должен быть от 1 до 1440 минут', 'error');
+                return;
+            }
+            
+            const timer = new Timer(minutes);
+            timers.push(timer);
+            renderAlarms();
+            saveToStorage();
+            showNotification(`Таймер установлен на ${minutes} минут`, 'success');
+            
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 50, 50]);
+            }
+        }
+
+        // Удалить будильник/таймер
+        function removeAlarm(id) {
+            alarms = alarms.filter(alarm => alarm.id !== id);
+            timers = timers.filter(timer => timer.id !== id);
+            renderAlarms();
+            saveToStorage();
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+        }
+
+        // Переключить состояние
+        function toggleAlarm(id) {
+            let item = alarms.find(a => a.id === id) || timers.find(t => t.id === id);
+            if (item) {
+                item.enabled = !item.enabled;
+                renderAlarms();
+                saveToStorage();
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(30);
+                }
+            }
+        }
+
+        // Отображение будильников
+        function renderAlarms() {
+            alarmList.innerHTML = '';
+            const allItems = [...alarms, ...timers];
+            
+            if (allItems.length === 0) {
+                alarmStatus.textContent = 'Нет активных будильников';
+                alarmStatus.style.color = '#888';
+                return;
+            }
+            
+            const activeCount = allItems.filter(item => item.enabled).length;
+            alarmStatus.textContent = `Активных: ${activeCount}/${allItems.length}`;
+            alarmStatus.style.color = activeCount > 0 ? '#ff9800' : '#888';
+            
+            allItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `alarm-item ${item.enabled ? 'active' : ''}`;
+                
+                let timeText = '';
+                if (item.type === 'alarm') {
+                    timeText = formatTime(item.hours, item.minutes);
+                } else {
+                    timeText = `${Math.ceil(item.remainingMinutes)} мин`;
+                }
+                
+                div.innerHTML = `
+                    <div>
+                        <div class="alarm-time">${timeText}</div>
+                        <div class="alarm-info">
+                            ${item.type === 'alarm' ? 'Будильник' : 'Таймер'}
+                        </div>
+                    </div>
+                    <div class="alarm-actions">
+                        <button onclick="toggleAlarm(${item.id})" class="${item.enabled ? 'action-btn' : 'reset-btn'}" style="padding: 8px 12px; font-size: 12px;">
+                            <i class="fas fa-${item.enabled ? 'pause' : 'play'}"></i>
+                        </button>
+                        <button onclick="removeAlarm(${item.id})" class="reset-btn" style="padding: 8px 12px; font-size: 12px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                alarmList.appendChild(div);
+            });
+        }
+
+        // Обновление таймеров
+        function updateTimers() {
+            let hasChanges = false;
+            const now = new Date();
+            
+            timers.forEach(timer => {
+                if (!timer.enabled) return;
+                
+                const elapsedMs = now - timer.startTime;
+                const elapsedMinutes = elapsedMs / (1000 * 60);
+                const remaining = timer.totalMinutes - elapsedMinutes;
+                
+                if (remaining <= 0) {
+                    showNotification(`Таймер завершен!`, 'alarm');
+                    timer.enabled = false;
+                    hasChanges = true;
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate([200, 100, 200, 100, 200]);
+                    }
+                } else if (Math.ceil(remaining) !== Math.ceil(timer.remainingMinutes)) {
+                    timer.remainingMinutes = remaining;
+                    hasChanges = true;
+                }
+            });
+            
+            if (hasChanges) {
+                renderAlarms();
+                saveToStorage();
+            }
+        }
+
+        // Проверка будильников
+        function checkAlarms(gameHours, gameMinutes) {
+            const currentGameTime = gameHours * 60 + gameMinutes;
+            
+            alarms.forEach(alarm => {
+                if (!alarm.enabled) return;
+                
+                const alarmTime = alarm.gameTime;
+                const timeDiff = Math.abs(currentGameTime - alarmTime);
+                
+                if (timeDiff < 1) {
+                    showNotification(`Будильник! Игровое время: ${formatTime(gameHours, gameMinutes)}`, 'alarm');
+                    alarm.enabled = false;
+                    renderAlarms();
+                    saveToStorage();
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate([500, 200, 500, 200, 500]);
+                    }
+                }
+            });
+        }
+
+        // ========== УВЕДОМЛЕНИЯ ==========
+
+        // Показать уведомление
+        function showNotification(message, type = 'info') {
+            notificationMessage.textContent = message;
+            notification.className = 'notification show';
+            
+            if (type === 'alarm') {
+                notification.style.background = 'linear-gradient(145deg, #ff9800, #f57c00)';
+            } else if (type === 'error') {
+                notification.style.background = 'linear-gradient(145deg, #f44336, #d32f2f)';
+            } else {
+                notification.style.background = 'linear-gradient(145deg, #4caf50, #388e3c)';
+            }
+            
+            setTimeout(closeNotification, 5000);
+        }
+
+        // Закрыть уведомление
+        function closeNotification() {
+            notification.classList.remove('show');
+        }
+
+        // ========== ХРАНИЛИЩЕ ==========
+
+        // Сохранение
+        function saveToStorage() {
+            const state = {
+                timezone: currentTimezone,
+                gameDayOffset: gameDayOffset,
+                alarms: alarms.map(alarm => ({
+                    id: alarm.id,
+                    hours: alarm.hours,
+                    minutes: alarm.minutes,
+                    enabled: alarm.enabled,
+                    type: alarm.type
+                })),
+                timers: timers.map(timer => ({
+                    id: timer.id,
+                    totalMinutes: timer.totalMinutes,
+                    remainingMinutes: timer.remainingMinutes,
+                    startTime: timer.startTime.getTime(),
+                    enabled: timer.enabled,
+                    type: timer.type
+                }))
+            };
+            localStorage.setItem('rr4Clock', JSON.stringify(state));
+        }
+
+        // Загрузка
+        function loadFromStorage() {
+            const saved = localStorage.getItem('rr4Clock');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    
+                    if (state.timezone !== undefined) {
+                        currentTimezone = parseInt(state.timezone);
+                        timezoneSelect.value = currentTimezone;
+                    }
+                    
+                    if (state.gameDayOffset !== undefined) {
+                        gameDayOffset = parseInt(state.gameDayOffset);
+                    }
+                    
+                    if (state.alarms) {
+                        alarms = state.alarms.map(data => {
+                            const alarm = new Alarm(data.hours, data.minutes, data.id);
+                            alarm.enabled = data.enabled;
+                            return alarm;
+                        });
+                    }
+                    
+                    if (state.timers) {
+                        timers = state.timers.map(data => {
+                            const timer = new Timer(data.totalMinutes, data.id);
+                            timer.remainingMinutes = data.remainingMinutes;
+                            timer.startTime = new Date(data.startTime);
+                            timer.enabled = data.enabled;
+                            return timer;
+                        });
+                    }
+                    
+                    renderAlarms();
+                    return true;
+                } catch (e) {
+                    console.error('Ошибка загрузки:', e);
+                }
+            }
+            return false;
+        }
+
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+
+        function init() {
+            // Загружаем настройки
+            loadFromStorage();
+            
+            // Обновление реального времени каждую секунду
+            setInterval(updateRealTime, 1000);
+            
+            // Проверка будильников каждые 10 секунд
+            alarmCheckInterval = setInterval(() => {
+                const localTime = getTimeForTimezone(currentTimezone);
+                const realHours = localTime.getHours();
+                const realMinutes = localTime.getMinutes();
+                const realSeconds = localTime.getSeconds();
+                const gameTime = realTimeToGameTime(realHours, realMinutes, realSeconds);
+                const totalGameMinutes = gameTime.totalGameMinutes;
+                const gameHours = Math.floor(totalGameMinutes / 60);
+                const gameMinutes = Math.floor(totalGameMinutes % 60);
+                checkAlarms(gameHours, gameMinutes);
+            }, 10000);
+            
+            // Первое обновление
+            updateRealTime();
+            renderAlarms();
+        }
+
+        // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
+
+        timezoneSelect.addEventListener('change', function() {
+            currentTimezone = parseInt(this.value);
+            updateRealTime();
+            saveToStorage();
+        });
+
+        addAlarmBtn.addEventListener('click', addAlarm);
+        addTimerBtn.addEventListener('click', addTimer);
+
+        // Валидация ввода
+        alarmHoursInput.addEventListener('change', function() {
+            let val = parseInt(this.value);
+            if (isNaN(val)) val = 0;
+            this.value = Math.max(0, Math.min(23, val));
+        });
+
+        alarmMinutesInput.addEventListener('change', function() {
+            let val = parseInt(this.value);
+            if (isNaN(val)) val = 0;
+            this.value = Math.max(0, Math.min(59, val));
+        });
+
+        timerMinutesInput.addEventListener('change', function() {
+            let val = parseInt(this.value);
+            if (isNaN(val)) val = 30;
+            this.value = Math.max(1, Math.min(1440, val));
+        });
+
+        // Закрытие уведомления по тапу
+        notification.addEventListener('click', closeNotification);
+
+        // Запуск при загрузке страницы
+        document.addEventListener('DOMContentLoaded', init);
+        
+        <!-- ========== ДОБАВЛЯЕМ ЭТО ========== -->
+        // Обработчик установки PWA
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            const installContainer = document.getElementById('installContainer');
+            if (installContainer) {
+                installContainer.style.display = 'block';
+            }
+            
+            document.getElementById('installButton').addEventListener('click', () => {
+                installContainer.style.display = 'none';
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('✅ Пользователь установил приложение');
+                    } else {
+                        console.log('❌ Пользователь отказался от установки');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        });
+
+        // Скрыть кнопку после установки
+        window.addEventListener('appinstalled', () => {
+            const installContainer = document.getElementById('installContainer');
+            if (installContainer) {
+                installContainer.style.display = 'none';
+            }
+            console.log('🎉 PWA успешно установлено!');
+        });
+        <!-- ========== КОНЕЦ ДОБАВЛЕНИЯ ========== -->
+    </script>
+</body>
+</html>
